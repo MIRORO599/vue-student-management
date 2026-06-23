@@ -58,47 +58,56 @@
       </table>
     </section>
 
-    <section v-if="isFormVisible" class="card">
-      <h2>{{ isEditMode ? '学生更新' : '学生登録' }}</h2>
+    <div v-if="isFormVisible" class="modal-overlay" @click.self="closeForm">
+      <section class="modal-card">
+        <div class="modal-header">
+          <h2>{{ isEditMode ? '学生更新' : '学生登録' }}</h2>
+          <button class="close-button" @click="closeForm">×</button>
+        </div>
 
-      <div class="form-area">
-        <label>学生名</label>
-        <input v-model.trim="form.studentName" type="text" maxlength="50" />
+        <div class="form-area">
+          <label>学生名</label>
+          <input v-model.trim="form.studentName" type="text" maxlength="50" />
 
-        <label>誕生日</label>
-        <input v-model="form.birthday" type="date" />
+          <label>誕生日</label>
+          <input v-model="form.birthday" type="date" />
 
-        <label>年齢</label>
-        <input v-model.number="form.age" type="number" min="0" max="150" />
+          <label>年齢</label>
+          <input v-model.number="form.age" type="number" min="0" max="150" />
 
-        <label>成績</label>
-        <input v-model.number="form.score" type="number" min="0" max="100" />
+          <label>成績</label>
+          <input v-model.number="form.score" type="number" min="0" max="100" />
 
-        <label>クラス</label>
-        <select v-model.number="form.studentClass">
-          <option :value="0">選択してください</option>
-          <option v-for="teacher in teachers" :key="teacher.studentClass" :value="teacher.studentClass">
-            {{ teacher.studentClass }}組
-          </option>
-        </select>
-      </div>
+          <label>クラス</label>
+          <select v-model.number="form.studentClass">
+            <option :value="0">選択してください</option>
+            <option
+              v-for="teacher in teachers"
+              :key="teacher.studentClass"
+              :value="teacher.studentClass"
+            >
+              {{ teacher.studentClass }}組
+            </option>
+          </select>
+        </div>
 
-      <ul v-if="errorMessages.length > 0" class="error-list">
-        <li v-for="message in errorMessages" :key="message">
-          {{ message }}
-        </li>
-      </ul>
+        <ul v-if="errorMessages.length > 0" class="error-list">
+          <li v-for="message in errorMessages" :key="message">
+            {{ message }}
+          </li>
+        </ul>
 
-      <div class="button-area">
-        <button class="primary-button" @click="saveStudent">保存</button>
-        <button @click="closeForm">キャンセル</button>
-      </div>
-    </section>
+        <div class="button-area">
+          <button class="primary-button" @click="saveStudent">保存</button>
+          <button @click="closeForm">キャンセル</button>
+        </div>
+      </section>
+    </div>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 
 type Student = {
   studentId: number
@@ -119,7 +128,9 @@ const isFormVisible = ref(false)
 const isEditMode = ref(false)
 const errorMessages = ref<string[]>([])
 
-const students = ref<Student[]>([
+const storageKey = 'student-management-students'
+
+const defaultStudents: Student[] = [
   {
     studentId: 1,
     studentName: '山田太郎',
@@ -144,7 +155,15 @@ const students = ref<Student[]>([
     score: 76,
     studentClass: 1
   }
-])
+]
+
+const savedStudents = localStorage.getItem(storageKey)
+
+const students = ref<Student[]>(
+  savedStudents
+    ? JSON.parse(savedStudents)
+    : defaultStudents
+)
 
 const teachers = ref<Teacher[]>([
   {
@@ -160,6 +179,17 @@ const teachers = ref<Teacher[]>([
     teacherName: '伊藤先生'
   }
 ])
+
+watch(
+  students,
+  (newStudents) => {
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify(newStudents)
+    )
+  },
+  { deep: true }
+)
 
 const form = reactive<Student>({
   studentId: 0,
@@ -340,7 +370,7 @@ function validateForm() {
 }
 
 .header {
-  display: flex;
+  /* display: flex; */
   justify-content: space-between;
   gap: 16px;
 }
@@ -416,5 +446,39 @@ button {
   border-color: #dc2626;
   background: #dc2626;
   color: #fff;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 45%);
+  z-index: 1000;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 560px;
+  padding: 24px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 12px 36px rgb(0 0 0 / 20%);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.close-button {
+  width: 36px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
 }
 </style>
