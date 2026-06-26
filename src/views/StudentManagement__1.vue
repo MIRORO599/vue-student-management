@@ -3,8 +3,8 @@
     <section class="card">
       <div class="header">
         <div>
-          <h1>学生管理システム</h1>
-          <p>学生情報の検索、登録、更新、削除を行います。</p>
+          <h1>商品管理システム</h1>
+          <p>商品情報の検索、登録、更新、削除を行います。</p>
         </div>
 
         <button class="primary-button" @click="openCreateForm">
@@ -13,46 +13,43 @@
       </div>
 
       <div class="search-area">
-        <label>学生名</label>
-        <input v-model.trim="searchName" type="text" placeholder="例：山田" />
+        <label>商品名</label>
+        <input v-model.trim="searchName" type="text" placeholder="例：iphone" />
         <button @click="clearSearch">クリア</button>
       </div>
 
-      <p>表示件数：{{ filteredStudents.length }} 件</p>
+      <p>表示件数：{{ filteredProducts.length }} 件</p>
 
-      <table class="student-table">
+      <table class="product-table">
         <thead>
           <tr>
-            <th>学生ID</th>
-            <th>学生名</th>
-            <th>誕生日</th>
-            <th>年齢</th>
-            <th>成績</th>
-            <th>クラス</th>
-            <th>先生名</th>
-            <th>操作</th>
+            <th>商品ID</th>
+            <th>商品名</th>
+            <th>カテゴリ</th>
+             <th>単価</th>
+             <th>在庫数</th>
+            <th>登録日</th>
           </tr>
         </thead>
 
         <tbody>
-          <tr v-for="student in filteredStudents" :key="student.studentId">
-            <td>{{ student.studentId }}</td>
-            <td>{{ student.studentName }}</td>
-            <td>{{ student.birthday }}</td>
-            <td>{{ student.age }}</td>
-            <td>{{ student.score }}</td>
-            <td>{{ student.studentClass }}</td>
-            <td>{{ getTeacherName(student.studentClass) }}</td>
+          <tr v-for="product in filteredProducts" :key="product.productId">
+            <td>{{ product.productId }}</td>
+            <td>{{ product.productName }}</td>
+            <td>{{ product.category }}</td>
+            <td>{{ product.price}}</td>
+            <td>{{ product.stockQuantity }}</td>
+            <td>{{ product.createdAt }}</td>
             <td>
-              <button @click="openEditForm(student)">更新</button>
-              <button class="danger-button" @click="openDeleteForm(student.studentId)">
+              <button @click="openEditForm(product)">更新</button>
+              <button class="danger-button" @click="openDeleteForm(product.productId)">
                 削除
               </button>
             </td>
           </tr>
 
-          <tr v-if="filteredStudents.length === 0">
-            <td colspan="8">該当する学生情報がありません。</td>
+          <tr v-if="filteredProducts.length === 0">
+            <td colspan="8">該当する商品情報がありません。</td>
           </tr>
         </tbody>
       </table>
@@ -61,30 +58,28 @@
     <div v-if="isFormVisible" class="modal-overlay" @click.self="closeForm">
       <section class="modal-card">
         <div class="modal-header">
-          <h2>{{ isEditMode ? '学生更新' : '学生登録' }}</h2>
+          <h2>{{ isEditMode ? '商品更新' : '商品登録' }}</h2>
           <button class="close-button" @click="closeForm">×</button>
         </div>
 
         <div class="form-area">
-          <label>学生名</label>
-          <input v-model.trim="form.studentName" type="text" maxlength="50" />
+          <label>商品ID</label>
+          <input v-model="form.productId" type="number" />
 
-          <label>誕生日</label>
-          <input v-model="form.birthday" type="date" />
+          <label>商品名</label>
+          <input v-model="form.productName" type="text" />
 
-          <label>年齢</label>
-          <input v-model.number="form.age" type="number" min="1" max="150" />
+          <label>カテゴリ</label>
+          <input v-model="form.category" type="text />
 
-          <label>成績</label>
-          <input v-model.number="form.score" type="number" min="0" max="100" />
+          <label>単価</label>
+          <input v-model.number="form.price" type="number" min="0"  />
 
-          <label>クラス</label>
-         <select v-model.number="form.studentClass"> 
-            <option :value="0">選択してください</option>
-            <option v-for="teacher in teachers" :key="teacher.studentClass" :value="teacher.studentClass">
-              {{ teacher.studentClass }}組
-            </option>
-          </select>
+          <label>在庫数</label>
+          <input v-model.number="form.stockQuantity" type="number" min="0"  />
+
+          <label>登録日</label>
+          <input v-model="form.createdAt" type="date" />
         </div>
 
         <ul v-if="errorMessages.length > 0" class="error-list">
@@ -103,8 +98,8 @@
 
     <div v-if="isVisible" class="modal-overlay" @click.self="closeForm">
       <section class="modal-cancelcard">
-        <div >
-          <h2>学生削除</h2>
+        <div>
+          <h2>商品削除</h2>
           <!-- <button class="close-button" @click="closeForm">×</button> -->
         </div>
 
@@ -125,10 +120,10 @@
 import { computed, reactive, ref, watch } from 'vue'
 
 type Student = {
-  studentId: number
-  studentName: string
-  birthday: string
-  age: number | null | ''
+  productId: number
+  productName: string
+  category: string
+  price: number | null | ''
   score: number | null | ''
   studentClass: number
 }
@@ -145,30 +140,30 @@ const isEditMode = ref(false)
 const errorMessages = ref<string[]>([])
 const deleteStudentId = ref<number | null>(null)
 
-const storageKey = 'student-management-students'
+const storageKey = 'product-management-students'
 
 const defaultStudents: Student[] = [
   {
-    studentId: 1,
-    studentName: '山田太郎',
-    birthday: '2001-04-10',
-    age: 23,
+    productId: 1,
+    productName: '山田太郎',
+    category: '2001-04-10',
+    price: 23,
     score: 82,
     studentClass: 1
   },
   {
-    studentId: 2,
-    studentName: '佐藤花子',
-    birthday: '2002-08-21',
-    age: 22,
+    productId: 2,
+    productName: '佐藤花子',
+    category: '2002-08-21',
+    price: 22,
     score: 91,
     studentClass: 2
   },
   {
-    studentId: 3,
-    studentName: '鈴木一郎',
-    birthday: '2000-12-05',
-    age: 24,
+    productId: 3,
+    productName: '鈴木一郎',
+    category: '2000-12-05',
+    price: 24,
     score: 76,
     studentClass: 1
   }
@@ -209,21 +204,21 @@ watch(
 )
 
 const form = reactive<Student>({
-  studentId: 0,
-  studentName: '',
-  birthday: '',
-  age: null,
+  productId: 0,
+  productName: '',
+  category: '',
+  price: null,
   score: null,
   studentClass: 0
 })
 
-const filteredStudents = computed(() => {
+const filteredProducts = computed(() => {
   if (searchName.value === '') {
     return students.value
   }
 
-  return students.value.filter((student) =>
-    student.studentName.includes(searchName.value)
+  return students.value.filter((product) =>
+    product.productName.includes(searchName.value)
   )
 })
 
@@ -232,21 +227,21 @@ function openCreateForm() {
   isFormVisible.value = true
   resetForm()
 }
-function openDeleteForm(studentId: number) {
-  deleteStudentId.value = studentId
+function openDeleteForm(productId: number) {
+  deleteStudentId.value = productId
   isVisible.value = true
 }
-function openEditForm(student: Student) {
+function openEditForm(product: Student) {
   isEditMode.value = true
   isFormVisible.value = true
   errorMessages.value = []
 
-  form.studentId = student.studentId
-  form.studentName = student.studentName
-  form.birthday = student.birthday
-  form.age = student.age
-  form.score = student.score
-  form.studentClass = student.studentClass
+  form.productId = product.productId
+  form.productName = product.productName
+  form.category = product.category
+  form.price = product.price
+  form.score = product.score
+  form.studentClass = product.studentClass
 }
 
 function saveStudent() {
@@ -267,10 +262,10 @@ function saveStudent() {
 
 function createStudent() {
   students.value.push({
-    studentId: getNextStudentId(),
-    studentName: form.studentName,
-    birthday: form.birthday,
-    age: form.age,
+    productId: getNextStudentId(),
+    productName: form.productName,
+    category: form.category,
+    price: form.price,
     score: form.score,
     studentClass: form.studentClass
   })
@@ -278,31 +273,31 @@ function createStudent() {
 
 function updateStudent() {
   const targetIndex = students.value.findIndex(
-    (student) => student.studentId === form.studentId
+    (product) => product.productId === form.productId
   )
 
   if (targetIndex === -1) {
-    alert('更新対象の学生情報が見つかりません。')
+    alert('更新対象の商品情報が見つかりません。')
     return
   }
 
   students.value[targetIndex] = {
-    studentId: form.studentId,
-    studentName: form.studentName,
-    birthday: form.birthday,
-    age: form.age,
+    productId: form.productId,
+    productName: form.productName,
+    category: form.category,
+    price: form.price,
     score: form.score,
     studentClass: form.studentClass
   }
 }
 
-function deleteStudent(studentId: number) {
+function deleteStudent(productId: number) {
   // if (!confirm('削除してもよろしいですか？')) {
   //   return
   // }
 
   students.value = students.value.filter(
-    (student) => student.studentId !== studentId
+    (product) => product.productId !== productId
   )
 }
 
@@ -331,10 +326,10 @@ function closeForm() {
 }
 
 function resetForm() {
-  form.studentId = 0
-  form.studentName = ''
-  form.birthday = ''
-  form.age = null
+  form.productId = 0
+  form.productName = ''
+  form.category = ''
+  form.price = null
   form.score = null
   form.studentClass = 0
 }
@@ -344,7 +339,7 @@ function getNextStudentId() {
     return 1
   }
 
-  return Math.max(...students.value.map((student) => student.studentId)) + 1
+  return Math.max(...students.value.map((product) => product.productId)) + 1
 }
 
 function getTeacherName(studentClass: number) {
@@ -358,32 +353,32 @@ function getTeacherName(studentClass: number) {
 function validateForm() {
   const messages: string[] = []
 
-  if (form.studentName === '') {
-    messages.push('学生名を入力してください。')
-  }
-  if (form.studentName.length > 25) {
-    messages.push('25文字以下を入力してください。')
-  }
+  // if (form.productName === '') {
+  //   messages.push('商品名を入力してください。')
+  // }
+  // if (form.productName.length > 25) {
+  //   messages.push('25文字以下を入力してください。')
+  // }
 
-  if (form.birthday === '') {
-    messages.push('誕生日を入力してください。')
-  }
+  // if (form.category === '') {
+  //   messages.push('誕生日を入力してください。')
+  // }
 
-  if (form.age === null || form.age === '' || Number.isNaN(form.age)) {
-    messages.push('年齢を入力してください。')
-  } else if (form.age < 0 || form.age > 150) {
-    messages.push('年齢は0以上150以下で入力してください。')
-  }
+  // if (form.price === null || form.price === '' || Number.isNaN(form.price)) {
+  //   messages.push('年齢を入力してください。')
+  // } else if (form.price < 0 || form.price > 150) {
+  //   messages.push('年齢は0以上150以下で入力してください。')
+  // }
 
-  if (form.score === null || form.score === '' || Number.isNaN(form.score)) {
-    messages.push('成績を入力してください。')
-  } else if (form.score < 0 || form.score > 100) {
-    messages.push('成績は0以上100以下で入力してください。')
-  }
+  // if (form.score === null || form.score === '' || Number.isNaN(form.score)) {
+  //   messages.push('成績を入力してください。')
+  // } else if (form.score < 0 || form.score > 100) {
+  //   messages.push('成績は0以上100以下で入力してください。')
+  // }
 
-  if (form.studentClass === 0) {
-    messages.push('クラスを選択してください。')
-  }
+  // if (form.studentClass === 0) {
+  //   messages.push('クラスを選択してください。')
+  // }
 
   return messages
 }
@@ -427,19 +422,19 @@ select {
   border-radius: 8px;
 }
 
-.student-table {
+.product-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.student-table th,
-.student-table td {
+.product-table th,
+.product-table td {
   padding: 12px 10px;
   border-bottom: 1px solid #e4e7ee;
   text-align: center;
 }
 
-.student-table th {
+.product-table th {
   background: #f0f2f8;
 }
 
@@ -512,6 +507,7 @@ button {
   background: #fff;
   box-shadow: 0 12px 36px rgb(0 0 0 / 20%);
 }
+
 .modal-header {
   display: flex;
   align-items: center;
